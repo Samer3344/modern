@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>معرض الصور والفيديوهات</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #fff;
+    min-height: 100vh;
+    padding: 30px 20px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2rem;
+    background: linear-gradient(90deg, #38bdf8, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* أزرار الفلترة */
+  .filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+  }
+  .filters button {
+    padding: 10px 20px;
+    border: 1px solid #38bdf8;
+    background: transparent;
+    color: #38bdf8;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all .3s ease;
+  }
+  .filters button:hover,
+  .filters button.active {
+    background: #38bdf8;
+    color: #0f172a;
+    box-shadow: 0 0 15px rgba(56,189,248,.5);
+  }
+  .filters button svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* شبكة المعرض */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    cursor: pointer;
+    aspect-ratio: 1 / 1;
+    background: #0b1120;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    transition: transform .35s ease, box-shadow .35s ease;
+  }
+  .item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(56,189,248,.35);
+  }
+  .item img,
+  .item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    transition: transform .5s ease;
+  }
+  .item:hover img,
+  .item:hover video { transform: scale(1.08); }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.55), transparent 55%);
+    pointer-events: none;
+  }
+
+  /* أيقونة التشغيل */
+  .play-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .play-icon svg {
+    width: 60px;
+    height: 60px;
+    fill: #fff;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.7));
+    transition: transform .3s ease;
+  }
+  .item:hover .play-icon svg { transform: scale(1.15); }
+
+  /* شارة الفيديو */
+  .badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,.7);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    pointer-events: none;
+  }
+  .badge svg { width: 12px; height: 12px; fill: #38bdf8; }
+
+  /* اللايت بوكس */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.94);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 70px 20px 20px;
+    animation: fade .25s ease;
+  }
+  .lightbox.show { display: flex; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .lightbox-content {
+    max-width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox-content img,
+  .lightbox-content video {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 10px;
+    display: block;
+    box-shadow: 0 0 40px rgba(56,189,248,.3);
+  }
+
+  /* أزرار التحكم */
+  .ctrl-btn {
+    position: absolute;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .25s ease;
+    z-index: 1001;
+  }
+  .ctrl-btn:hover {
+    background: #38bdf8;
+    border-color: #38bdf8;
+  }
+  .ctrl-btn svg { width: 24px; height: 24px; fill: #fff; }
+
+  .close-btn {
+    top: 15px;
+    left: 15px;
+    width: 48px;
+    height: 48px;
+  }
+  .prev-btn, .next-btn {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+  }
+  .prev-btn { right: 15px; }
+  .next-btn { left: 15px; }
+  .prev-btn:hover, .next-btn:hover { transform: translateY(-50%) scale(1.1); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.4rem; }
+    .ctrl-btn { width: 42px; height: 42px; }
+    .ctrl-btn svg { width: 20px; height: 20px; }
+    .prev-btn { right: 8px; }
+    .next-btn { left: 8px; }
+    .close-btn { top: 10px; left: 10px; }
+    .play-icon svg { width: 45px; height: 45px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>✨ معرض الصور والفيديوهات ✨</h1>
+
+<div class="filters">
+  <button class="active" data-filter="all">
+    <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+    الكل
+  </button>
+  <button data-filter="image">
+    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+    صور
+  </button>
+  <button data-filter="video">
+    <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+    فيديوهات
+  </button>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<div class="lightbox" id="lightbox">
+  <button class="ctrl-btn close-btn" id="closeBtn" aria-label="إغلاق">
+    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+  <button class="ctrl-btn prev-btn" id="prevBtn" aria-label="السابق">
+    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+  </button>
+  <div class="lightbox-content" id="lightboxContent"></div>
+  <button class="ctrl-btn next-btn" id="nextBtn" aria-label="التالي">
+    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+  </button>
+</div>
+
+<script>
+/* ===== عدّل الروابط من هنا ===== */
+const mediaItems = [
+  { type: 'image', src: 'https://picsum.photos/id/1015/800/800', title: 'جبل' },
+  { type: 'image', src: 'https://picsum.photos/id/1025/800/800', title: 'كلب' },
+  { type: 'video', src: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://picsum.photos/id/1018/800/800', title: 'فيديو 1' },
+  { type: 'image', src: 'https://picsum.photos/id/1019/800/800', title: 'طبيعة' },
+  { type: 'video', src: 'https://www.w3schools.com/html/movie.mp4', poster: 'https://picsum.photos/id/1036/800/800', title: 'فيديو 2' },
+  { type: 'image', src: 'https://picsum.photos/id/1039/800/800', title: 'شلال' },
+  { type: 'image', src: 'https://picsum.photos/id/1043/800/800', title: 'بحر' },
+  { type: 'video', src: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://picsum.photos/id/1048/800/800', title: 'فيديو 3' },
+];
+
+const gallery = document.getElementById('gallery');
+const lightbox = document.getElementById('lightbox');
+const lightboxContent = document.getElementById('lightboxContent');
+const closeBtn = document.getElementById('closeBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+let currentItems = [...mediaItems];
+let currentIndex = 0;
+
+const playSVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const videoSVG = '<svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+
+/* ===== بناء المعرض ===== */
+function buildGallery(filter = 'all') {
+  gallery.innerHTML = '';
+  currentItems = filter === 'all'
+    ? [...mediaItems]
+    : mediaItems.filter(m => m.type === filter);
+
+  if (currentItems.length === 0) {
+    gallery.innerHTML = '<p style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8">لا يوجد عناصر</p>';
+    return;
+  }
+
+  currentItems.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+
+    if (item.type === 'image') {
+      div.innerHTML = `<img src="${item.src}" alt="${item.title}" loading="lazy">`;
+    } else {
+      div.innerHTML = `
+        <video src="${item.src}" poster="${item.poster || ''}" muted preload="metadata"></video>
+        <div class="overlay"></div>
+        <div class="play-icon">${playSVG}</div>
+        <div class="badge">${videoSVG} فيديو</div>
+      `;
+    }
+
+    div.addEventListener('click', () => openLightbox(i));
+    gallery.appendChild(div);
+  });
+}
+
+/* ===== اللايت بوكس ===== */
+function openLightbox(index) {
+  if (!currentItems.length) return;
+  currentIndex = index;
+  renderLightbox();
+  lightbox.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderLightbox() {
+  const item = currentItems[currentIndex];
+  if (!item) return;
+
+  if (item.type === 'image') {
+    lightboxContent.innerHTML = `<img src="${item.src}" alt="${item.title}">`;
+  } else {
+    lightboxContent.innerHTML = `
+      <video src="${item.src}" controls autoplay playsinline></video>
+    `;
+  }
+
+  const single = currentItems.length <= 1;
+  prevBtn.style.display = single ? 'none' : 'flex';
+  nextBtn.style.display = single ? 'none' : 'flex';
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('show');
+  lightboxContent.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function nextMedia() {
+  if (currentItems.length <= 1) return;
+  currentIndex = (currentIndex + 1) % currentItems.length;
+  renderLightbox();
+}
+
+function prevMedia() {
+  if (currentItems.length <= 1) return;
+  currentIndex = (currentIndex - 1 + currentItems.length) % currentItems.length;
+  renderLightbox();
+}
+
+/* ===== ربط الأحداث (كل الأيقونات شغالة) ===== */
+closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prevMedia(); });
+nextBtn.addEventListener('click', (e) => { e.stopPropagation(); nextMedia(); });
+
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+
+/* الكيبورد */
+document.addEventListener('keydown', (e) => {
+  if (!lightbox.classList.contains('show')) return;
+  if (e.key === 'Escape') closeLightbox();
+  else if (e.key === 'ArrowRight') prevMedia();  // RTL: يمين = السابق
+  else if (e.key === 'ArrowLeft') nextMedia();   // RTL: يسار = التالي
+});
+
+/* الفلترة */
+document.querySelectorAll('.filters button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.filters button.active').classList.remove('active');
+    btn.classList.add('active');
+    buildGallery(btn.dataset.filter);
+  });
+});
+
+/* بدء التطبيق */
+buildGallery();
+</script>
+</body>
+</html>
